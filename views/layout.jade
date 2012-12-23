@@ -1,0 +1,18 @@
+doctype 5
+html
+  head
+    title= title
+    link(rel='stylesheet', href='/bootstrap/docs/assets/css/bootstrap.css')
+    link(rel='stylesheet', href='/bootstrap/docs/assets/css/bootstrap-responsive.css')
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    //link(rel='stylesheet', href='/stylesheets/common.css')
+    link(rel='stylesheet', href='/fontawesome/css/font-awesome.css')
+    script(src='/socket.io/socket.io.js')
+    script(src='/javascripts/jquery.js')
+    script(src='/javascripts/underscore.js')
+    script(src='/javascripts/backbone.js')
+    block head
+    
+  body
+    block content
+
