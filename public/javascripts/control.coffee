@@ -11,17 +11,38 @@ Display = Backbone.Model.extend
         #when "create", "read", "update", "delete"
           #@io.emit "controlShowDisplay", model.toJSON()
 
+DisplayRowView = Backbone.View.extend
+
+    initialize: ->
+        @render()
+
+    templateRow: "<tr><td>{{timestamp}}</td><td><input class='message' type='text' value='{{message}}'/></td></tr>"
+    
+    render: ->
+        row = $  _.template(@templateRow, @model.toJSON())
+        row.find(".message").on("change", _.bind(@updateMessageModel, this))
+
+        @$el.append row
+        return @
+
+    #events: 
+     #   "change input.message" : "updateMessageModel"
+  
+    updateMessageModel: (e)->
+        value = $(e.target).val()
+        @model.set 'message': value
+
 
 eventManager =
   linkDisplayInputToModel: (model, input)->
     $(input).change (e)->
         value = $(e.target).val()
-        model.set 'value': value
+        model.set 'message': value
 
 
 $(document).ready ->
 
-  #_.templateSettings = interpolate: /\{\{(.+?)\}\}/g
+    _.templateSettings = interpolate: /\{\{(.+?)\}\}/g
 
     app = {}
     app.server = io.connect("/")
@@ -31,20 +52,20 @@ $(document).ready ->
             console.log message
     _s_log = (o) ->
             console.log JSON.stringify o
-            welcome: "<h1>#{message}</h1>"
-            user: "<div #user>{{userName}}</div>"
-
+    
     app.showDisplay = (message) ->
         _log message
-        $("ul").empty()
-   
-        $.each message, (key, val) =>
-            input = $("<input type='text'></text>")
-            model = new Display (id:key), socket: app.server
-            eventManager.linkDisplayInputToModel model,input 
-            li = $("<li>" + val + "</li>").append input 
-            $("ul").append li
-            
+        $("table#displayList").empty()
+  
+        displayRow = "<tr><td>{{timestamp}}</td><td><input class='message' type='text' value='{{message}}'/></td></tr>"
+
+        $.each message, (key, display) =>
+            row = $ _.template(displayRow, display) 
+            input = row.find ".message"
+            _log input
+
+            model = new Display (display), socket: app.server
+            new DisplayRowView model: model, el:  $("table#displayList")
 
     app.server.on "connect", ->
         _log "Connected to the server" + arguments

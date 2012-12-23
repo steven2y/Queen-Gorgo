@@ -21,9 +21,11 @@
     };
     app.server.on("connect", function() {
       _log("Connected to the server" + arguments);
-      app.display = new Date().getTime();
-      $("h1").text("display " + app.display);
-      app.server.emit("displayRegister", app.display);
+      app.timestamp = new Date().getTime();
+      $("h1").text("display " + app.timestamp);
+      app.server.emit("displayRegister", {
+        timestamp: app.timestamp
+      });
       app.server.on("message", function(data) {
         return _log("Received message: " + data.message);
       });

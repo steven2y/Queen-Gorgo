@@ -71,12 +71,12 @@ module dependencies.
       message: "Welcome to the display counter"
     });
     socket.on("displayRegister", function(data) {
+      data.message = "init";
+      data.id = socket.id;
       console.log("Display Registered " + data);
       displayList[socket.id] = data;
       console.log(displayList);
-      socket.emit("overlayMessage", {
-        message: "show"
-      });
+      socket.emit("overlayMessage", data);
       return io.sockets["in"]("controls").emit("showDisplayList", displayList);
     });
     socket.on("chat", function(data) {
@@ -90,10 +90,9 @@ module dependencies.
     socket.on("controlShowDisplay", function(data) {
       console.log("controlshow" + data);
       if (io.sockets.socket(data.id)) {
-        return io.sockets.socket(data.id).emit("overlayMessage", {
-          message: data.value
-        });
+        io.sockets.socket(data.id).emit("overlayMessage", data);
       }
+      return displayList[data.id] = data;
     });
     socket.on("controlHideDisplay", function() {
       var kk, vv, _results;
