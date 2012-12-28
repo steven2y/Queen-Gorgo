@@ -1,5 +1,12 @@
 extends layout
 
 block content
-  div#newId
-    this is it
+  div.row
+    div.span6
+      a.btn.btn-primary(href="/control")
+        i.icon-dashboard
+        span control
+    div.span6
+      a.btn.btn-primary(href="/display") 
+        i.icon-check-empty 
+        span display
