@@ -60,6 +60,15 @@ io.sockets.on "connection", (socket) ->
     socket.emit "overlayMessage", data
     io.sockets.in("controls").emit  "showDisplayList", displayList 
 
+  socket.on "displayUpdate", (data) ->
+    console.log "Display update " + data
+    for key, value of data
+      displayList[socket.id][key] = value
+    
+    console.log "Display update " + data
+    io.sockets.in("controls").emit  "showDisplayList", displayList 
+
+
   socket.on "chat", (data) ->
     console.log data
 

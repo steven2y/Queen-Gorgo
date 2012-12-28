@@ -2,11 +2,13 @@
 (function() {
 
   $(document).ready(function() {
-    var app, _log, _s_log;
+    var app, displayModel, win, _log, _s_log;
     _.templateSettings = {
       interpolate: /\{\{(.+?)\}\}/g
     };
     app = {};
+    displayModel = {};
+    win = $(window);
     app.server = io.connect("/");
     console.log("Loading");
     _log = function(message) {
@@ -21,11 +23,11 @@
     };
     app.server.on("connect", function() {
       _log("Connected to the server" + arguments);
-      app.timestamp = new Date().getTime();
-      $("h1").text("display " + app.timestamp);
-      app.server.emit("displayRegister", {
-        timestamp: app.timestamp
-      });
+      displayModel.timestamp = new Date().getTime();
+      $("h1").text("display " + displayModel.timestamp);
+      displayModel.height = win.height();
+      displayModel.width = win.width();
+      app.server.emit("displayRegister", displayModel);
       app.server.on("message", function(data) {
         return _log("Received message: " + data.message);
       });
@@ -34,7 +36,11 @@
       });
     });
     $(window).resize(function() {
-      return $("#overlay").css("font-size", $(window).height() + "px");
+      $("#overlay").css("font-size", $(window).height() + "px");
+      displayModel.height = win.height();
+      displayModel.width = win.width();
+      app.server.emit("displayUpdate", displayModel);
+      return console.log(displayModel);
     });
     return window.app = app;
   });

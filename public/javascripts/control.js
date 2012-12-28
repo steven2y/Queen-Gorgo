@@ -18,7 +18,7 @@
       this.render();
       return this.model.on("change", this.refreshFromModel, this);
     },
-    templateRow: "<tr><td><span class='badge badge-info'><i class='icon-resize-vertical'></i></span>{{timestamp}}</td><td><input class='message' type='text' value='{{message}}'/></td></tr>",
+    templateRow: "<tr><td><span class='badge badge-info'><i class='icon-resize-vertical'></i></span>{{timestamp}}</td><td><input class='message' type='text' value='{{message}}'/></td><td>{{height}}x{{width}} (px)</td></tr>",
     render: function() {
       this.row = $(_.template(this.templateRow, this.model.toJSON()));
       this.inputMessage = this.row.find("input.message");
@@ -97,16 +97,11 @@
       return console.log(JSON.stringify(o));
     };
     app.showDisplay = function(message) {
-      var displayRow,
-        _this = this;
+      var _this = this;
       _log(message);
       $("table#displayList").empty();
-      displayRow = "<tr><td>{{timestamp}}</td><td><input class='message' type='text' value='{{message}}'/></td></tr>";
       return $.each(message, function(key, display) {
-        var input, model, row;
-        row = $(_.template(displayRow, display));
-        input = row.find(".message");
-        _log(input);
+        var model;
         model = new Display(display, {
           socket: app.server
         });

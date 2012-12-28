@@ -17,7 +17,7 @@ DisplayRowView = Backbone.View.extend
         @render()
         @model.on "change", @refreshFromModel, @
 
-    templateRow: "<tr><td><span class='badge badge-info'><i class='icon-resize-vertical'></i></span>{{timestamp}}</td><td><input class='message' type='text' value='{{message}}'/></td></tr>"
+    templateRow: "<tr><td><span class='badge badge-info'><i class='icon-resize-vertical'></i></span>{{timestamp}}</td><td><input class='message' type='text' value='{{message}}'/></td><td>{{height}}x{{width}} (px)</td></tr>"
     
     render: ->
         @row = $  _.template(@templateRow, @model.toJSON())
@@ -81,12 +81,12 @@ $(document).ready ->
         _log message
         $("table#displayList").empty()
   
-        displayRow = "<tr><td>{{timestamp}}</td><td><input class='message' type='text' value='{{message}}'/></td></tr>"
+       # displayRow = "<tr><td>{{timestamp}}</td><td><input class='message' type='text' value='{{message}}'/></td></tr>"
 
         $.each message, (key, display) =>
-            row = $ _.template(displayRow, display) 
-            input = row.find ".message"
-            _log input
+            #row = $ _.template(displayRow, display) 
+            #input = row.find ".message"
+            #_log input
 
             model = new Display (display), socket: app.server
             app.models.push model

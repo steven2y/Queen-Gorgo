@@ -79,6 +79,16 @@ module dependencies.
       socket.emit("overlayMessage", data);
       return io.sockets["in"]("controls").emit("showDisplayList", displayList);
     });
+    socket.on("displayUpdate", function(data) {
+      var key, value;
+      console.log("Display update " + data);
+      for (key in data) {
+        value = data[key];
+        displayList[socket.id][key] = value;
+      }
+      console.log("Display update " + data);
+      return io.sockets["in"]("controls").emit("showDisplayList", displayList);
+    });
     socket.on("chat", function(data) {
       return console.log(data);
     });
