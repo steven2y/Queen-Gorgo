@@ -1,0 +1,5 @@
+13:09:03 - compiled client.coffee
+13:09:03 - compiled mvc.coffee
+13:09:51 - compiled client.coffee
+13:10:09 - compiled client.coffee
+13:12:55 - compiled client.coffee

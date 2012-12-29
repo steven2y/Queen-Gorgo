@@ -1,0 +1,22 @@
+extend layout
+
+block head
+  script(src='/javascripts/control.js')
+
+block content
+  h1
+    Display Control
+
+  div.row
+    div.span8
+      table#displayList
+    div.span4
+      h4 Binary Counter
+      div.row
+        div.span4
+          label(for="speed") Speed in ms
+          input(name="speed", id="speed" ,value="5000")
+      div.row
+        div.span4
+          button#startStopBinary
+            |start
