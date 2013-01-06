@@ -1,13 +1,12 @@
 Queen-Gorgo
 ===========
 
-Simple Bit Binary Counter Over Multi browser display   
+Web Photo display   
 Uses node and sockets to control the individual display   
 
 
-
     {server}/display to register a display
-    {server}/control for the control
+    {server}/control for the control to upload
 
 
 
