@@ -8,15 +8,23 @@ block content
     Display Control
 
   div.row
-    div.span8
+    div.span5
       table#displayList
-    div.span4
-      h4 Binary Counter
-      div.row
-        div.span4
-          label(for="speed") Speed in ms
-          input(name="speed", id="speed" ,value="5000")
-      div.row
-        div.span4
-          button#startStopBinary
-            |start
+    div.span5
+      form#upload(action="/newphoto", method="post", enctype="multipart/form-data")
+        div.row
+          div#loadedPicture.span5 noPicture 
+        h4 Photo
+        div.row
+          div.span5
+            input(name="photo", id="photo" , type="file")
+        div.row
+          div.span5
+            button#loadPhoto
+              |load
+
+        div.row
+          div.span5
+            h5 Loaded Photos
+            ul.thumbnails#imageList
+            

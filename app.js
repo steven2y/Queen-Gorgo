@@ -6,7 +6,7 @@ module dependencies.
 
 
 (function() {
-  var app, control, display, displayList, express, http, io, path, routes, socket, stylus;
+  var app, control, display, displayList, express, fs, http, io, path, photoDir, routes, socket, stylus, uploadDir;
 
   express = require("express");
 
@@ -24,9 +24,15 @@ module dependencies.
 
   path = require("path");
 
+  fs = require('fs');
+
   app = module.exports = express.createServer();
 
   io = socket.listen(app);
+
+  photoDir = "/uploads/";
+
+  uploadDir = __dirname + '/public' + photoDir;
 
   app.configure(function() {
     app.set("port", process.env.PORT || 3000);
@@ -59,6 +65,18 @@ module dependencies.
 
   app.get("/control", control.index);
 
+  app.post("/newphoto", function(req, res, next) {
+    return fs.readFile(req.files.photo.path, function(err, data) {
+      var d1, newPath, time;
+      d1 = new Date();
+      time = d1.getFullYear() + '' + d1.getMonth() + d1.getDate() + d1.getHours() + d1.getMinutes() + d1.getSeconds();
+      newPath = uploadDir + time + req.files.photo.name;
+      return fs.writeFile(newPath, data, function(err) {
+        return res.redirect("/control");
+      });
+    });
+  });
+
   app.listen(3000, function() {
     return console.log("==> Server listening on port %d in %s mode", app.address().port, app.settings.env);
   });
@@ -89,13 +107,21 @@ module dependencies.
       console.log("Display update " + data);
       return io.sockets["in"]("controls").emit("showDisplayList", displayList);
     });
-    socket.on("chat", function(data) {
-      return console.log(data);
-    });
     socket.on("controlRegister", function() {
       console.log("controlRegister");
       socket.join('controls');
-      return io.sockets["in"]("controls").emit("showDisplayList", displayList);
+      io.sockets["in"]("controls").emit("showDisplayList", displayList);
+      return fs.readdir(uploadDir, function(err, list) {
+        var key, name, _i, _len;
+        list.sort();
+        list.reverse();
+        for (key = _i = 0, _len = list.length; _i < _len; key = ++_i) {
+          name = list[key];
+          list[key] = photoDir + name;
+        }
+        console.log(list);
+        return io.sockets["in"]("controls").emit("updatePhotoList", list);
+      });
     });
     socket.on("controlShowDisplay", function(data) {
       console.log("controlshow" + data);

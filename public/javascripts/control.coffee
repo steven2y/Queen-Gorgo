@@ -17,7 +17,7 @@ DisplayRowView = Backbone.View.extend
         @render()
         @model.on "change", @refreshFromModel, @
 
-    templateRow: "<tr><td><span class='badge badge-info'><i class='icon-resize-vertical'></i></span>{{timestamp}}</td><td><input class='message' type='text' value='{{message}}'/></td><td>{{height}}x{{width}} (px)</td></tr>"
+    templateRow: "<tr><td>{{timestamp}}</td><td><input class='message' type='text' value='{{message}}'/></td><td>{{height}}x{{width}} (px)</td></tr>"
     
     render: ->
         @row = $  _.template(@templateRow, @model.toJSON())
@@ -38,32 +38,68 @@ DisplayRowView = Backbone.View.extend
         @inputMessage.val @model.get('message')
         console.log 'refresh'
 
-class BinaryCounter
-    constructor: (@table, @msInput) ->
-        @counter = 0
-
-    start: (ms) ->
-        @timer = window.setInterval(_.bind(this.loadBits, @), parseInt @msInput.val())
-
-    stop: ->
-        window.clearInterval @timer
-
-    loadBits: ->
-        @counter++
-        console.log @counter
-        binary = @counter.toString 2
-
-        binaryReverse = binary.split("").reverse().join("")
-
-        display = @table.find 'input.message'
- 
-        @displayBit display[i], bit for bit, i in binaryReverse when display[i]
+class PhotoList
+    constructor: (@ul) ->
+        @photos = []
+        _.extend @, Backbone.Events
     
-    displayBit: (input, bit)->
-        $(input).val bit
-        $(input).change()
 
+    templatePhoto: "<li class='span1'>
+                <a class='thumbnail' href='#'> 
+                <image src='{{src}}' />
+                </a>
+                </li>"
+
+    update: (list) ->
+        for photo in list
+            if jQuery.inArray(photo, @photos) is -1
+                @photos.push photo
+                @showPhoto photo    
+
+
+    showPhoto: (photoPath) ->
+        src = photoPath
+        photo = $  _.template(@templatePhoto, {src: src})
+
+        $(photo).find("a.thumbnail").click( _.bind (e)-> 
+           console.log src
+           @.trigger "imgClick", src
+        ,@)
+        @ul.append photo
+
+
+class PictureControl
+    image : ''
+
+    constructor: (@div) ->
+
+    templateImage: "<image src='{{src}}' /> <p>{{height}}x{{width}}(px)</p>"
+
+    loadImage: (@src) ->
+        @image = new Image()
+
+        $(@image).load( _.bind -> 
+            $(@div).empty()
+            newImage = $  _.template(@templateImage, {src: src, height: @image.height, width: @image.width})
+            @div.append newImage
+        , this)    
+        @image.src = src   
+
+    getImageHeight: ->
+        @image.height
+
+    getImageWidth: ->
+        @image.width
+    
 $(document).ready ->
+
+    photoList = new PhotoList $('ul#imageList')
+    pictureControl = new PictureControl $('div#loadedPicture')
+
+    photoList.bind 'imgClick', (src) ->
+        console.log src
+        pictureControl.loadImage src
+
 
     _.templateSettings = interpolate: /\{\{(.+?)\}\}/g
 
@@ -92,26 +128,21 @@ $(document).ready ->
             app.models.push model
             new DisplayRowView model: model, el:  $("table#displayList")
 
+    app.updatePhotoList = (message) ->
+        _log message
+        photoList.update message
+    
     app.server.on "connect", ->
         _log "Connected to the server" + arguments
 
     app.server.emit "controlRegister"
 
     app.server.on "showDisplayList", app.showDisplay
+    
+    app.server.on "updatePhotoList", app.updatePhotoList
 
     app.server.on "message", (data) ->
         _log "Received message: " + data.message
 
-    $("table#displayList").sortable (items: "tr", handle: "span.badge")
-
-    binaryCounter = new BinaryCounter $("table#displayList"), $("input#speed")
-
-    $('button#startStopBinary').click ->
-        value = $('button#startStopBinary').text()
-        if value == 'start'
-            binaryCounter.start()
-            $('button#startStopBinary').text 'stop'
-        else
-            binaryCounter.stop()
-            $('button#startStopBinary').text 'start'
+   
     window.app = app
