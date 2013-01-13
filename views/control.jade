@@ -2,6 +2,7 @@ extend layout
 
 block head
   script(src='/javascripts/control.js')
+  link(rel='stylesheet', href='/stylesheets/control.css')
 
 block content
   h1
@@ -13,7 +14,7 @@ block content
     div.span5
       form#upload(action="/newphoto", method="post", enctype="multipart/form-data")
         div.row
-          div#loadedPicture.span5 noPicture 
+          div#loadedPicture.span5 
         h4 Photo
         div.row
           div.span5

@@ -32,11 +32,15 @@ $(document).ready ->
 			_log "Received message: " + data.message
 
 		app.server.on "overlayMessage", (data) ->
+			console.log data
 			$("#overlay")
 				.empty()
 				.text(data.message)
 				.addClass('show')
 				.css("font-size",$(window).height()+"px")
+			if data.imageSrc
+				$("#overlay").css('background-image', "url('" + data.imageSrc + "')")
+				$("#overlay").css('background-position', data.imageLeft + 'px ' + data.imageTop + 'px')
 
 	$(window).resize -> 
 		$("#overlay")

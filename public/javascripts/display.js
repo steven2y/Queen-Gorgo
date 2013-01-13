@@ -32,7 +32,12 @@
         return _log("Received message: " + data.message);
       });
       return app.server.on("overlayMessage", function(data) {
-        return $("#overlay").empty().text(data.message).addClass('show').css("font-size", $(window).height() + "px");
+        console.log(data);
+        $("#overlay").empty().text(data.message).addClass('show').css("font-size", $(window).height() + "px");
+        if (data.imageSrc) {
+          $("#overlay").css('background-image', "url('" + data.imageSrc + "')");
+          return $("#overlay").css('background-position', data.imageLeft + 'px ' + data.imageTop + 'px');
+        }
       });
     });
     $(window).resize(function() {

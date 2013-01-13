@@ -6,10 +6,6 @@ Display = Backbone.Model.extend
             console.log "change"
             console.log  model.toJSON()
             @socket.emit "controlShowDisplay", model.toJSON()
-    #sync: (method, model, options) ->
-      #switch method
-        #when "create", "read", "update", "delete"
-          #@io.emit "controlShowDisplay", model.toJSON()
 
 DisplayRowView = Backbone.View.extend
 
@@ -17,7 +13,7 @@ DisplayRowView = Backbone.View.extend
         @render()
         @model.on "change", @refreshFromModel, @
 
-    templateRow: "<tr><td>{{timestamp}}</td><td><input class='message' type='text' value='{{message}}'/></td><td>{{height}}x{{width}} (px)</td></tr>"
+    templateRow: "<tr><td>{{timestamp}}</td><td><input class='message' type='text' value='{{message}}'/></td><td>{{width}}x{{height}} (px)</td></tr>"
     
     render: ->
         @row = $  _.template(@templateRow, @model.toJSON())
@@ -61,10 +57,9 @@ class PhotoList
         src = photoPath
         photo = $  _.template(@templatePhoto, {src: src})
 
-        $(photo).find("a.thumbnail").click( _.bind (e)-> 
-           console.log src
-           @.trigger "imgClick", src
-        ,@)
+        $(photo).find("a.thumbnail").click (e) => 
+          @.trigger "imgClick", src
+        
         @ul.append photo
 
 
@@ -72,18 +67,106 @@ class PictureControl
     image : ''
 
     constructor: (@div) ->
+        @displayFrames = []
+        @tnSize = {height:0, width:0}
 
-    templateImage: "<image src='{{src}}' /> <p>{{height}}x{{width}}(px)</p>"
+    templateImage: "<image src='{{src}}' />"
+    templateDim:"<p class='dimensions'>{{height}}x{{width}}(px)</p>"
 
     loadImage: (@src) ->
         @image = new Image()
 
-        $(@image).load( _.bind -> 
-            $(@div).empty()
-            newImage = $  _.template(@templateImage, {src: src, height: @image.height, width: @image.width})
-            @div.append newImage
-        , this)    
-        @image.src = src   
+        $(@image).load( _.bind => 
+            @tnImage.remove() if @tnImage
+            @tnDim.remove() if @tnDim
+
+            @tnImage = $  _.template(@templateImage, {src: src}) 
+
+            @tnDim = $  _.template(@templateDim, {height: @image.height, width: @image.width})
+
+            @div.append @tnImage
+            @div.append @tnDim
+
+            #lets add as background and remove tnImage
+
+            @tnSize = {
+                height: @tnImage.height(),
+                width: @tnImage.width()
+            }
+
+            tnHeight = @getTnHeight() + 'px'
+            tnWidth = @getTnWidth() + 'px'
+            biUrl = "url('" + @src + "')"
+            @div.css({
+                    height:tnHeight,
+                    width:tnWidth,
+                    'background-image': biUrl
+                    'background-size': tnWidth + ' ' + tnHeight;
+                    'background-repeat': 'no-repeat';
+            })
+            @tnImage.remove()
+
+            @refreshDisplayFrames()
+        )
+        @image.src = src 
+
+
+
+    templateDisplayFrame: "<div class='displayFrame'></div>"
+
+    refreshDisplayFrames: ->
+        @clearDisplayFrame()
+        for model in @models
+                @addDisplayFrame model
+
+
+    setModels: (@models) ->
+        if @image
+            @refreshDisplayFrames()
+
+    clearDisplayFrame: ->
+        for frames in @displayFrames
+            frames.remove()
+
+    addDisplayFrame: (model) ->
+        newDisplay =  $ _.template(@templateDisplayFrame, {}) 
+        console.log $(@div).position()
+        $(@div).append newDisplay
+        newDisplay.draggable({ 
+            containment: "parent",
+            drag: (e, ui) =>
+                
+                top = @scaleUp(ui.position.top)
+                left = @scaleUp(ui.position.left)
+                model.set { 
+                            imageTop: 0 - top,
+                            imageLeft:  0 - left
+                            }
+        });
+        @setDisplaySize model, newDisplay
+       
+        @displayFrames.push newDisplay
+
+
+    setDisplaySize: (model, display) ->
+        height = @scaleDown(model.get('height')) + 'px'
+        width = @scaleDown(model.get('width')) + 'px'
+        
+        display.css({height: height, width: width })
+    
+    #scaleUp for position in image
+    scaleUp: (px) ->
+        parseInt(px * ( @getImageHeight() / @getTnHeight()))
+
+    #scale down for psotion in thumbnail
+    scaleDown: (px) ->
+        parseInt(px * (@getTnHeight() /  @getImageHeight()))
+    
+    getTnHeight: ->
+        @tnSize.height
+
+    getTnWidth: ->
+        @tnSize.width
 
     getImageHeight: ->
         @image.height
@@ -93,15 +176,11 @@ class PictureControl
     
 $(document).ready ->
 
+    _.templateSettings = interpolate: /\{\{(.+?)\}\}/g
+
+
     photoList = new PhotoList $('ul#imageList')
     pictureControl = new PictureControl $('div#loadedPicture')
-
-    photoList.bind 'imgClick', (src) ->
-        console.log src
-        pictureControl.loadImage src
-
-
-    _.templateSettings = interpolate: /\{\{(.+?)\}\}/g
 
     app = {}
     app.models = []
@@ -114,11 +193,9 @@ $(document).ready ->
             console.log JSON.stringify o
     
     app.showDisplay = (message) ->
-        _log message
         $("table#displayList").empty()
-  
-       # displayRow = "<tr><td>{{timestamp}}</td><td><input class='message' type='text' value='{{message}}'/></td></tr>"
-
+        app.models = []
+        
         $.each message, (key, display) =>
             #row = $ _.template(displayRow, display) 
             #input = row.find ".message"
@@ -128,8 +205,9 @@ $(document).ready ->
             app.models.push model
             new DisplayRowView model: model, el:  $("table#displayList")
 
+        pictureControl.setModels app.models    
+
     app.updatePhotoList = (message) ->
-        _log message
         photoList.update message
     
     app.server.on "connect", ->
@@ -144,5 +222,12 @@ $(document).ready ->
     app.server.on "message", (data) ->
         _log "Received message: " + data.message
 
+    photoList.on 'imgClick', (src) ->
+       
+        for model in app.models
+            model.set { 'imageSrc': src, 'imageTop': 0, 'imageLeft': 0 }
+
+        console.log app.models
+        pictureControl.loadImage src    
    
     window.app = app

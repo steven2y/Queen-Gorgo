@@ -18,7 +18,7 @@
       this.render();
       return this.model.on("change", this.refreshFromModel, this);
     },
-    templateRow: "<tr><td>{{timestamp}}</td><td><input class='message' type='text' value='{{message}}'/></td><td>{{height}}x{{width}} (px)</td></tr>",
+    templateRow: "<tr><td>{{timestamp}}</td><td><input class='message' type='text' value='{{message}}'/></td><td>{{width}}x{{height}} (px)</td></tr>",
     render: function() {
       this.row = $(_.template(this.templateRow, this.model.toJSON()));
       this.inputMessage = this.row.find("input.message");
@@ -65,15 +65,15 @@
     };
 
     PhotoList.prototype.showPhoto = function(photoPath) {
-      var photo, src;
+      var photo, src,
+        _this = this;
       src = photoPath;
       photo = $(_.template(this.templatePhoto, {
         src: src
       }));
-      $(photo).find("a.thumbnail").click(_.bind(function(e) {
-        console.log(src);
-        return this.trigger("imgClick", src);
-      }, this));
+      $(photo).find("a.thumbnail").click(function(e) {
+        return _this.trigger("imgClick", src);
+      });
       return this.ul.append(photo);
     };
 
@@ -87,24 +87,136 @@
 
     function PictureControl(div) {
       this.div = div;
+      this.displayFrames = [];
+      this.tnSize = {
+        height: 0,
+        width: 0
+      };
     }
 
-    PictureControl.prototype.templateImage = "<image src='{{src}}' /> <p>{{height}}x{{width}}(px)</p>";
+    PictureControl.prototype.templateImage = "<image src='{{src}}' />";
+
+    PictureControl.prototype.templateDim = "<p class='dimensions'>{{height}}x{{width}}(px)</p>";
 
     PictureControl.prototype.loadImage = function(src) {
+      var _this = this;
       this.src = src;
       this.image = new Image();
       $(this.image).load(_.bind(function() {
-        var newImage;
-        $(this.div).empty();
-        newImage = $(_.template(this.templateImage, {
-          src: src,
-          height: this.image.height,
-          width: this.image.width
+        var biUrl, tnHeight, tnWidth;
+        if (_this.tnImage) {
+          _this.tnImage.remove();
+        }
+        if (_this.tnDim) {
+          _this.tnDim.remove();
+        }
+        _this.tnImage = $(_.template(_this.templateImage, {
+          src: src
         }));
-        return this.div.append(newImage);
-      }, this));
+        _this.tnDim = $(_.template(_this.templateDim, {
+          height: _this.image.height,
+          width: _this.image.width
+        }));
+        _this.div.append(_this.tnImage);
+        _this.div.append(_this.tnDim);
+        _this.tnSize = {
+          height: _this.tnImage.height(),
+          width: _this.tnImage.width()
+        };
+        tnHeight = _this.getTnHeight() + 'px';
+        tnWidth = _this.getTnWidth() + 'px';
+        biUrl = "url('" + _this.src + "')";
+        _this.div.css({
+          height: tnHeight,
+          width: tnWidth,
+          'background-image': biUrl,
+          'background-size': tnWidth + ' ' + tnHeight,
+          'background-repeat': 'no-repeat'
+        });
+        _this.tnImage.remove();
+        return _this.refreshDisplayFrames();
+      }));
       return this.image.src = src;
+    };
+
+    PictureControl.prototype.templateDisplayFrame = "<div class='displayFrame'></div>";
+
+    PictureControl.prototype.refreshDisplayFrames = function() {
+      var model, _i, _len, _ref, _results;
+      this.clearDisplayFrame();
+      _ref = this.models;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        model = _ref[_i];
+        _results.push(this.addDisplayFrame(model));
+      }
+      return _results;
+    };
+
+    PictureControl.prototype.setModels = function(models) {
+      this.models = models;
+      if (this.image) {
+        return this.refreshDisplayFrames();
+      }
+    };
+
+    PictureControl.prototype.clearDisplayFrame = function() {
+      var frames, _i, _len, _ref, _results;
+      _ref = this.displayFrames;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        frames = _ref[_i];
+        _results.push(frames.remove());
+      }
+      return _results;
+    };
+
+    PictureControl.prototype.addDisplayFrame = function(model) {
+      var newDisplay,
+        _this = this;
+      newDisplay = $(_.template(this.templateDisplayFrame, {}));
+      console.log($(this.div).position());
+      $(this.div).append(newDisplay);
+      newDisplay.draggable({
+        containment: "parent",
+        drag: function(e, ui) {
+          var left, top;
+          top = _this.scaleUp(ui.position.top);
+          left = _this.scaleUp(ui.position.left);
+          return model.set({
+            imageTop: 0 - top,
+            imageLeft: 0 - left
+          });
+        }
+      });
+      this.setDisplaySize(model, newDisplay);
+      return this.displayFrames.push(newDisplay);
+    };
+
+    PictureControl.prototype.setDisplaySize = function(model, display) {
+      var height, width;
+      height = this.scaleDown(model.get('height')) + 'px';
+      width = this.scaleDown(model.get('width')) + 'px';
+      return display.css({
+        height: height,
+        width: width
+      });
+    };
+
+    PictureControl.prototype.scaleUp = function(px) {
+      return parseInt(px * (this.getImageHeight() / this.getTnHeight()));
+    };
+
+    PictureControl.prototype.scaleDown = function(px) {
+      return parseInt(px * (this.getTnHeight() / this.getImageHeight()));
+    };
+
+    PictureControl.prototype.getTnHeight = function() {
+      return this.tnSize.height;
+    };
+
+    PictureControl.prototype.getTnWidth = function() {
+      return this.tnSize.width;
     };
 
     PictureControl.prototype.getImageHeight = function() {
@@ -121,15 +233,11 @@
 
   $(document).ready(function() {
     var app, photoList, pictureControl, _log, _s_log;
-    photoList = new PhotoList($('ul#imageList'));
-    pictureControl = new PictureControl($('div#loadedPicture'));
-    photoList.bind('imgClick', function(src) {
-      console.log(src);
-      return pictureControl.loadImage(src);
-    });
     _.templateSettings = {
       interpolate: /\{\{(.+?)\}\}/g
     };
+    photoList = new PhotoList($('ul#imageList'));
+    pictureControl = new PictureControl($('div#loadedPicture'));
     app = {};
     app.models = [];
     app.server = io.connect("/");
@@ -142,9 +250,9 @@
     };
     app.showDisplay = function(message) {
       var _this = this;
-      _log(message);
       $("table#displayList").empty();
-      return $.each(message, function(key, display) {
+      app.models = [];
+      $.each(message, function(key, display) {
         var model;
         model = new Display(display, {
           socket: app.server
@@ -155,9 +263,9 @@
           el: $("table#displayList")
         });
       });
+      return pictureControl.setModels(app.models);
     };
     app.updatePhotoList = function(message) {
-      _log(message);
       return photoList.update(message);
     };
     app.server.on("connect", function() {
@@ -168,6 +276,20 @@
     app.server.on("updatePhotoList", app.updatePhotoList);
     app.server.on("message", function(data) {
       return _log("Received message: " + data.message);
+    });
+    photoList.on('imgClick', function(src) {
+      var model, _i, _len, _ref;
+      _ref = app.models;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        model = _ref[_i];
+        model.set({
+          'imageSrc': src,
+          'imageTop': 0,
+          'imageLeft': 0
+        });
+      }
+      console.log(app.models);
+      return pictureControl.loadImage(src);
     });
     return window.app = app;
   });
